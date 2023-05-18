@@ -159,12 +159,12 @@ impl ObservationData {
     pub fn new(obs: f64, lli: Option<LliFlags>, ssi: Option<Ssi>) -> ObservationData {
         ObservationData { obs, lli, ssi }
     }
-    /// Returns `true` if self is determined as `ok`.    
+    /// Returns `true` if self is determined as `ok`.
     /// self is declared `ok` if LLI and SSI flags are not provided,
-    /// because they are considered as unknown/ok if missing by default.   
-    /// If LLI exists:    
-    ///    + LLI must match the LliFlags::OkOrUnknown flag (strictly)    
-    /// if SSI exists:    
+    /// because they are considered as unknown/ok if missing by default.
+    /// If LLI exists:
+    ///    + LLI must match the LliFlags::OkOrUnknown flag (strictly)
+    /// if SSI exists:
     ///    + SSI must match the .is_ok() criteria, refer to API
     pub fn is_ok(self) -> bool {
         let lli_ok = self.lli.unwrap_or(LliFlags::OK_OR_UNKNOWN) == LliFlags::OK_OR_UNKNOWN;
@@ -234,7 +234,7 @@ pub(crate) fn is_new_epoch(line: &str, v: Version) -> bool {
         if line.len() < 30 {
             false
         } else {
-            epoch::parse(&line[0..29]).is_ok()
+            epoch::parse_utc(&line[0..29]).is_ok()
         }
     } else {
         // Modern RINEX
@@ -289,7 +289,7 @@ pub(crate) fn parse_epoch(
     let (date, rem) = line.split_at(offset + 3);
     let (n_sat, rem) = rem.split_at(3);
     let n_sat = u16::from_str_radix(n_sat.trim(), 10)?;
-    let epoch = epoch::parse(date)?;
+    let epoch = epoch::parse_utc(date)?; // TODO use time scale from TIME OF FIRST OBS header
 
     // previously identified observables (that we expect)
     let obs = header.obs.as_ref().unwrap();

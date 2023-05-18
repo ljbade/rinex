@@ -1,4 +1,4 @@
-use crate::epoch;
+use crate::{epoch, prelude::Constellation};
 use hifitime::Epoch;
 use std::str::FromStr;
 use thiserror::Error;
@@ -52,7 +52,7 @@ pub struct StoMessage {
 }
 
 impl StoMessage {
-    pub fn parse(mut lines: std::str::Lines<'_>) -> Result<(Epoch, Self), Error> {
+    pub fn parse(mut lines: std::str::Lines<'_>, c: Constellation) -> Result<(Epoch, Self), Error> {
         let line = match lines.next() {
             Some(l) => l,
             _ => return Err(Error::MissingData),
@@ -60,7 +60,7 @@ impl StoMessage {
 
         let (epoch, rem) = line.split_at(23);
         let (system, _) = rem.split_at(5);
-        let (epoch, _) = epoch::parse(epoch.trim())?;
+        let (epoch, _) = epoch::parse(epoch.trim(), c)?;
 
         let line = match lines.next() {
             Some(l) => l,

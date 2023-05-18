@@ -1,5 +1,5 @@
-use crate::types::Type;
-use hifitime::Epoch;
+use crate::{prelude::Constellation, types::Type};
+use hifitime::{Epoch, TimeScale};
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -110,11 +110,31 @@ pub(crate) fn format(epoch: Epoch, flag: Option<EpochFlag>, t: Type, revision: u
     }
 }
 
+pub(crate) fn parse_utc(s: &str) -> Result<(Epoch, EpochFlag), Error> {
+    parse_ts(s, TimeScale::UTC)
+}
+
+pub(crate) fn parse(s: &str, c: Constellation) -> Result<(Epoch, EpochFlag), Error> {
+    let ts = match c {
+        Constellation::GPS => TimeScale::GPST,
+        Constellation::Glonass => TimeScale::UTC,
+        Constellation::BeiDou => TimeScale::BDT,
+        Constellation::QZSS => TimeScale::GPST, // TODO should be QZSST
+        Constellation::Galileo => TimeScale::GST,
+        Constellation::Geo => TimeScale::GST,
+        Constellation::SBAS(_) => TimeScale::GST,
+        Constellation::IRNSS => TimeScale::UTC, // TODO should be IRNSST
+        Constellation::Mixed => TimeScale::UTC,
+    };
+
+    parse_ts(s, ts)
+}
+
 /*
  * Parses an Epoch and optional flag, from standard specifications.
  * YY encoded on two digits, prior 20000 get shifted to 21st century.
  */
-pub(crate) fn parse(s: &str) -> Result<(Epoch, EpochFlag), Error> {
+pub(crate) fn parse_ts(s: &str, ts: TimeScale) -> Result<(Epoch, EpochFlag), Error> {
     let items: Vec<&str> = s.split_ascii_whitespace().collect();
     if items.len() != 6 {
         if items.len() != 7 {
@@ -140,7 +160,9 @@ pub(crate) fn parse(s: &str) -> Result<(Epoch, EpochFlag), Error> {
                                     } else {
                                         ns *= 100;
                                     }
-                                    let e = Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, ns);
+                                    let e =
+                                        Epoch::maybe_from_gregorian(y, m, d, hh, mm, ss, ns, ts)
+                                            .unwrap();
                                     if items.len() == 7 {
                                         // flag exists
                                         Ok((e, EpochFlag::from_str(items[6].trim())?))
@@ -159,7 +181,8 @@ pub(crate) fn parse(s: &str) -> Result<(Epoch, EpochFlag), Error> {
                              * we assume no flags either. Flags only come in Observation epochs
                              * that always have nanoseconds specified */
                             if let Ok(ss) = u8::from_str_radix(&items[5].trim(), 10) {
-                                let e = Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, 0);
+                                let e = Epoch::maybe_from_gregorian(y, m, d, hh, mm, ss, 0, ts)
+                                    .unwrap();
                                 Ok((e, EpochFlag::Ok))
                             } else {
                                 Err(Error::SecondsError)

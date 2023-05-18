@@ -37,7 +37,7 @@ pub(crate) fn is_new_epoch(line: &str, v: version::Version) -> bool {
             return false;
         }
         let datestr = &line[1..min_len.len()];
-        epoch::parse(datestr).is_ok() // valid epoch descriptor
+        epoch::parse_utc(datestr).is_ok() // valid epoch descriptor
     } else {
         let min_len = " 2021  1  7  0  0  0";
         if line.len() < min_len.len() {
@@ -45,7 +45,7 @@ pub(crate) fn is_new_epoch(line: &str, v: version::Version) -> bool {
             return false;
         }
         let datestr = &line[1..min_len.len()];
-        epoch::parse(datestr).is_ok() // valid epoch descriptor
+        epoch::parse_utc(datestr).is_ok() // valid epoch descriptor
     }
 }
 
@@ -75,7 +75,7 @@ pub fn parse_epoch(
         offset += 2; // YYYY
     }
 
-    let (epoch, _) = epoch::parse(&line[0..offset])?;
+    let (epoch, _) = epoch::parse_utc(&line[0..offset])?;
 
     let codes = &header.meteo.as_ref().unwrap().codes;
     let n_codes = codes.len();

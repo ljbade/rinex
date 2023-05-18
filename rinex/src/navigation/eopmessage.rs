@@ -55,7 +55,10 @@ pub struct EopMessage {
 }
 
 impl EopMessage {
-    pub(crate) fn parse(mut lines: std::str::Lines<'_>) -> Result<(Epoch, Self), Error> {
+    pub(crate) fn parse(
+        mut lines: std::str::Lines<'_>,
+        c: Constellation,
+    ) -> Result<(Epoch, Self), Error> {
         let line = match lines.next() {
             Some(l) => l,
             _ => return Err(Error::EopMissing1stLine),
@@ -80,7 +83,7 @@ impl EopMessage {
         let (dut, rem) = rem.split_at(19);
         let (ddut, dddut) = rem.split_at(19);
 
-        let (epoch, _) = epoch::parse(epoch.trim())?;
+        let (epoch, _) = epoch::parse(epoch.trim(), c)?;
         let x = (
             f64::from_str(xp.trim()).unwrap_or(0.0_f64),
             f64::from_str(dxp.trim()).unwrap_or(0.0_f64),

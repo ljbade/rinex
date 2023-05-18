@@ -1,6 +1,6 @@
 use super::{
     orbits::{closest_revision, NAV_ORBITS},
-    OrbitItem,
+    MsgType, OrbitItem,
 };
 use crate::{epoch, prelude::*, sv, version::Version};
 use hifitime::{Unit, GPST_REF_EPOCH};
@@ -438,7 +438,6 @@ impl Ephemeris {
 
         let (svnn, rem) = line.split_at(svnn_offset);
         let (date, rem) = rem.split_at(date_offset);
-        let (epoch, _) = epoch::parse(date.trim())?;
         let (clk_bias, rem) = rem.split_at(19);
         let (clk_dr, clk_drr) = rem.split_at(19);
 
@@ -461,6 +460,7 @@ impl Ephemeris {
             _ => unreachable!(),
         };
 
+        let (epoch, _) = epoch::parse(date.trim(), sv.constellation)?;
         let clock_bias = f64::from_str(clk_bias.replace("D", "E").trim())?;
         let clock_drift = f64::from_str(clk_dr.replace("D", "E").trim())?;
         let clock_drift_rate = f64::from_str(clk_drr.replace("D", "E").trim())?;
@@ -477,23 +477,39 @@ impl Ephemeris {
         ))
     }
 
-    pub fn parse_v4(mut lines: std::str::Lines<'_>) -> Result<(Epoch, Sv, Self), Error> {
+    pub fn parse_v4(
+        msg_type: MsgType,
+        mut lines: std::str::Lines<'_>,
+    ) -> Result<(Epoch, Sv, Self), Error> {
         let line = match lines.next() {
             Some(l) => l,
             _ => return Err(Error::MissingData),
         };
 
+        let is_cnav = matches!(
+            msg_type,
+            MsgType::CNAV | MsgType::CNV1 | MsgType::CNV2 | MsgType::CNV3
+        );
+        let version = if is_cnav {
+            Version { major: 4, minor: 0 }
+        } else {
+            Version { major: 3, minor: 0 }
+        };
+
         let (svnn, rem) = line.split_at(4);
         let sv = Sv::from_str(svnn.trim())?;
         let (epoch, rem) = rem.split_at(19);
-        let (epoch, _) = epoch::parse(epoch.trim())?;
+        let (epoch, _) = epoch::parse(epoch.trim(), sv.constellation)?;
+        // if msg_type == MsgType::CNV1 {
+        //     println!("sv = {sv} epoch = {epoch:?} eph");
+        // }
 
         let (clk_bias, rem) = rem.split_at(19);
         let (clk_dr, clk_drr) = rem.split_at(19);
         let clock_bias = f64::from_str(clk_bias.replace("D", "E").trim())?;
         let clock_drift = f64::from_str(clk_dr.replace("D", "E").trim())?;
         let clock_drift_rate = f64::from_str(clk_drr.replace("D", "E").trim())?;
-        let orbits = parse_orbits(Version { major: 4, minor: 0 }, sv.constellation, lines)?;
+        let orbits = parse_orbits(version, sv.constellation, lines)?;
         Ok((
             epoch,
             sv,
@@ -595,7 +611,7 @@ mod test {
      8.065253496170e-07 3.683507675305e-04-3.911554813385e-07 5.440603218079e+03
      3.522000000000e+05-6.519258022308e-08 2.295381450845e+00 7.450580596924e-09
      9.883726443393e-01 3.616875000000e+02 2.551413130998e-01-5.907746081337e-09
-     1.839362331110e-10 2.580000000000e+02 2.111000000000e+03                   
+     1.839362331110e-10 2.580000000000e+02 2.111000000000e+03
      3.120000000000e+00 0.000000000000e+00-1.303851604462e-08 0.000000000000e+00
      3.555400000000e+05";
         let orbits = parse_orbits(Version::new(3, 0), Constellation::Galileo, content.lines());

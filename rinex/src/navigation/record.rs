@@ -69,6 +69,14 @@ impl std::fmt::Display for FrameClass {
 pub enum MsgType {
     /// Legacy NAV
     LNAV,
+    /// CNAV
+    CNAV,
+    /// CNAV-1
+    CNV1,
+    /// CNAV-2
+    CNV2,
+    /// CNAV-3
+    CNV3,
     /// FDMA
     FDMA,
     /// FNAV
@@ -99,6 +107,10 @@ impl std::fmt::Display for MsgType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::LNAV => f.write_str("LNAV"),
+            Self::CNAV => f.write_str("CNAV"),
+            Self::CNV1 => f.write_str("CNV1"),
+            Self::CNV2 => f.write_str("CNV2"),
+            Self::CNV3 => f.write_str("CNV3"),
             Self::FNAV => f.write_str("FNAV"),
             Self::INAV => f.write_str("INAV"),
             Self::FDMA => f.write_str("FDMA"),
@@ -237,7 +249,7 @@ pub(crate) fn is_new_epoch(line: &str, v: Version) -> bool {
         }
         // rest matches a valid epoch descriptor
         let datestr = &line[3..22];
-        epoch::parse(&datestr).is_ok()
+        epoch::parse_utc(&datestr).is_ok()
     } else if v.major == 3 {
         // RINEX V3
         if line.len() < 24 {
@@ -251,7 +263,7 @@ pub(crate) fn is_new_epoch(line: &str, v: Version) -> bool {
         }
         // rest matches a valid epoch descriptor
         let datestr = &line[4..23];
-        epoch::parse(&datestr).is_ok()
+        epoch::parse_utc(&datestr).is_ok()
     } else {
         // Modern --> easy
         if let Some(c) = line.chars().nth(0) {
@@ -324,41 +336,47 @@ fn parse_v4_record_entry(content: &str) -> Result<(Epoch, FrameClass, Frame), Er
 
     let (epoch, fr): (Epoch, Frame) = match frame_class {
         FrameClass::Ephemeris => {
-            let (epoch, _, ephemeris) = Ephemeris::parse_v4(lines)?;
+            let (epoch, _, ephemeris) = Ephemeris::parse_v4(msg_type, lines)?;
+            // if msg_type == MsgType::CNV1 {
+            //     println!("sv = {sv} epoch = {epoch:?} rcd 1");
+            // }
             (epoch, Frame::Eph(msg_type, sv, ephemeris))
         },
         FrameClass::SystemTimeOffset => {
-            let (epoch, msg) = StoMessage::parse(lines)?;
+            let (epoch, msg) = StoMessage::parse(lines, sv.constellation)?;
             (epoch, Frame::Sto(msg_type, sv, msg))
         },
         FrameClass::EarthOrientation => {
-            let (epoch, msg) = EopMessage::parse(lines)?;
+            let (epoch, msg) = EopMessage::parse(lines, sv.constellation)?;
             (epoch, Frame::Eop(msg_type, sv, msg))
         },
         FrameClass::IonosphericModel => {
             let (epoch, msg): (Epoch, IonMessage) = match msg_type {
                 MsgType::IFNV => {
-                    let (epoch, model) = NgModel::parse(lines)?;
+                    let (epoch, model) = NgModel::parse(lines, sv.constellation)?;
                     (epoch, IonMessage::NequickGModel(model))
                 },
                 MsgType::CNVX => match sv.constellation {
                     Constellation::BeiDou => {
-                        let (epoch, model) = BdModel::parse(lines)?;
+                        let (epoch, model) = BdModel::parse(lines, sv.constellation)?;
                         (epoch, IonMessage::BdgimModel(model))
                     },
                     _ => {
-                        let (epoch, model) = KbModel::parse(lines)?;
+                        let (epoch, model) = KbModel::parse(lines, sv.constellation)?;
                         (epoch, IonMessage::KlobucharModel(model))
                     },
                 },
                 _ => {
-                    let (epoch, model) = KbModel::parse(lines)?;
+                    let (epoch, model) = KbModel::parse(lines, sv.constellation)?;
                     (epoch, IonMessage::KlobucharModel(model))
                 },
             };
             (epoch, Frame::Ion(msg_type, sv, msg))
         },
     };
+    // if msg_type == MsgType::CNV1 {
+    //     println!("sv = {sv} epoch = {epoch:?} rcd 2");
+    // }
     Ok((epoch, frame_class, fr))
 }
 

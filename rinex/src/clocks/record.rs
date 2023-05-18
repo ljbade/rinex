@@ -140,8 +140,8 @@ pub(crate) fn is_new_epoch(line: &str) -> bool {
     DataType::from_str(content).is_ok()
 }
 
-/// Builds `RINEX` record entry for `Clocks` data files.   
-/// Returns identified `epoch` to sort data efficiently.  
+/// Builds `RINEX` record entry for `Clocks` data files.
+/// Returns identified `epoch` to sort data efficiently.
 /// Returns 2D data as described in `record` definition
 pub(crate) fn parse_epoch(
     version: Version,
@@ -194,7 +194,7 @@ pub(crate) fn parse_epoch(
        +2+1  // m
         +11; // s
     let (epoch, rem) = rem.split_at(offset);
-    let (epoch, _) = epoch::parse(epoch.trim())?;
+    let (epoch, _) = epoch::parse_utc(epoch.trim())?;
 
     // nb of data fields
     let (n, _) = rem.split_at(4);
