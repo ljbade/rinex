@@ -124,7 +124,7 @@ pub(crate) fn fmt_epoch(
     let mut lines = String::with_capacity(128);
     lines.push_str(&format!(
         " {}",
-        epoch::format(*epoch, None, Type::MeteoData, header.version.major)
+        epoch::format_utc(*epoch, None, Type::MeteoData, header.version.major)
     ));
     let observables = &header.meteo.as_ref().unwrap().codes;
     let mut index = 0;

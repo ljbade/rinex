@@ -619,7 +619,13 @@ fn fmt_epoch_v3(
     let obscodes = &header.obs.as_ref().unwrap().codes;
     lines.push_str(&format!(
         "> {} {:2}",
-        epoch::format(epoch, Some(flag), Type::ObservationData, 3),
+        epoch::format_ts(
+            epoch,
+            header.time_first_obs.time_scale,
+            Some(flag),
+            Type::ObservationData,
+            3
+        ),
         data.len()
     ));
     if let Some(data) = clock_offset {
@@ -664,7 +670,13 @@ fn fmt_epoch_v2(
     let obscodes = &header.obs.as_ref().unwrap().codes;
     lines.push_str(&format!(
         " {} {:2}",
-        epoch::format(epoch, Some(flag), Type::ObservationData, 2),
+        epoch::format_ts(
+            epoch,
+            header.time_first_obs.time_scale,
+            Some(flag),
+            Type::ObservationData,
+            2
+        ),
         data.len()
     ));
     let mut index = 0_u8;

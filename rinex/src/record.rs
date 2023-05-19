@@ -192,7 +192,7 @@ impl Record {
                         let _ = write!(
                             writer,
                             "{}                        EPOCH OF CURRENT MAP",
-                            epoch::format(*epoch, None, Type::IonosphereMaps, 1)
+                            epoch::format_utc(*epoch, None, Type::IonosphereMaps, 1)
                         );
                         let _ = write!(writer, "{:6}                                                      END OF TEC MAP", index);
                     }
@@ -205,7 +205,7 @@ impl Record {
                         let _ = write!(
                             writer,
                             "{}                        EPOCH OF CURRENT MAP",
-                            epoch::format(*epoch, None, Type::IonosphereMaps, 1)
+                            epoch::format_utc(*epoch, None, Type::IonosphereMaps, 1)
                         );
                         let _ = write!(writer, "{:6}                                                      END OF RMS MAP", index);
                     }
@@ -214,7 +214,7 @@ impl Record {
                         let _ = write!(
                             writer,
                             "{}                        EPOCH OF CURRENT MAP",
-                            epoch::format(*epoch, None, Type::IonosphereMaps, 1)
+                            epoch::format_utc(*epoch, None, Type::IonosphereMaps, 1)
                         );
                         let _ = write!(writer, "{:6}                                                      END OF HEIGHT MAP", index);
                     }
@@ -244,7 +244,7 @@ pub enum Error {
     ClockEpochError(#[from] clocks::Error),
 }
 
-/// Returns true if given line matches the start   
+/// Returns true if given line matches the start
 /// of a new epoch, inside a RINEX record.
 pub fn is_new_epoch(line: &str, header: &header::Header) -> bool {
     if is_comment!(line) {

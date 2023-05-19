@@ -39,12 +39,33 @@ pub(crate) fn now() -> Epoch {
     Epoch::now().unwrap_or(Epoch::from_gregorian_utc_at_midnight(2000, 01, 01))
 }
 
+pub(crate) fn format(
+    epoch: Epoch,
+    c: Constellation,
+    flag: Option<EpochFlag>,
+    t: Type,
+    revision: u8,
+) -> String {
+    format_ts(epoch, c.to_time_scale().unwrap(), flag, t, revision)
+}
+
+pub(crate) fn format_utc(epoch: Epoch, flag: Option<EpochFlag>, t: Type, revision: u8) -> String {
+    format_ts(epoch, TimeScale::UTC, flag, t, revision)
+}
+
 /*
  * Formats given epoch to string, matching standard specifications
  */
 // TODO need to handle time scale properly! should convert to the same time scale
-pub(crate) fn format(epoch: Epoch, flag: Option<EpochFlag>, t: Type, revision: u8) -> String {
-    let (y, m, d, hh, mm, ss, nanos) = epoch.to_gregorian_utc();
+pub(crate) fn format_ts(
+    epoch: Epoch,
+    ts: TimeScale,
+    flag: Option<EpochFlag>,
+    t: Type,
+    revision: u8,
+) -> String {
+    let (y, m, d, hh, mm, ss, nanos) =
+        Epoch::compute_gregorian(epoch.to_duration_in_time_scale(ts));
     match t {
         Type::ObservationData => {
             if revision < 3 {

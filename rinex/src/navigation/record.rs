@@ -424,7 +424,13 @@ fn fmt_epoch_v2v3(
                 }
                 lines.push_str(&format!(
                     "{} ",
-                    epoch::format(*epoch, None, Type::NavigationData, header.version.major)
+                    epoch::format(
+                        *epoch,
+                        sv.constellation,
+                        None,
+                        Type::NavigationData,
+                        header.version.major
+                    )
                 ));
                 lines.push_str(&format!(
                     "{:14.11E} {:14.11E} {:14.11E}\n   ",
@@ -513,7 +519,13 @@ fn fmt_epoch_v4(
                 }
                 lines.push_str(&format!(
                     "{} ",
-                    epoch::format(*epoch, None, Type::NavigationData, header.version.major)
+                    epoch::format(
+                        *epoch,
+                        sv.constellation,
+                        None,
+                        Type::NavigationData,
+                        header.version.major
+                    )
                 ));
                 lines.push_str(&format!(
                     "{:14.13E} {:14.13E} {:14.13E}\n",
@@ -563,7 +575,13 @@ fn fmt_epoch_v4(
                 lines.push_str(&format!("> {} {} {}\n", class, sv, msg));
                 lines.push_str(&format!(
                     "    {} {}    {}\n",
-                    epoch::format(*epoch, None, Type::NavigationData, header.version.major),
+                    epoch::format(
+                        *epoch,
+                        sv.constellation,
+                        None,
+                        Type::NavigationData,
+                        header.version.major
+                    ),
                     sto.system,
                     sto.utc
                 ));
