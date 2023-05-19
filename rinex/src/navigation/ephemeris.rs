@@ -486,30 +486,17 @@ impl Ephemeris {
             _ => return Err(Error::MissingData),
         };
 
-        let is_cnav = matches!(
-            msg_type,
-            MsgType::CNAV | MsgType::CNV1 | MsgType::CNV2 | MsgType::CNV3
-        );
-        let version = if is_cnav {
-            Version { major: 4, minor: 0 }
-        } else {
-            Version { major: 3, minor: 0 }
-        };
-
         let (svnn, rem) = line.split_at(4);
         let sv = Sv::from_str(svnn.trim())?;
         let (epoch, rem) = rem.split_at(19);
         let (epoch, _) = epoch::parse(epoch.trim(), sv.constellation)?;
-        // if msg_type == MsgType::CNV1 {
-        //     println!("sv = {sv} epoch = {epoch:?} eph");
-        // }
 
         let (clk_bias, rem) = rem.split_at(19);
         let (clk_dr, clk_drr) = rem.split_at(19);
         let clock_bias = f64::from_str(clk_bias.replace("D", "E").trim())?;
         let clock_drift = f64::from_str(clk_dr.replace("D", "E").trim())?;
         let clock_drift_rate = f64::from_str(clk_drr.replace("D", "E").trim())?;
-        let orbits = parse_orbits(version, sv.constellation, lines)?;
+        let orbits = parse_orbits(Version { major: 4, minor: 0 }, sv.constellation, lines)?;
         Ok((
             epoch,
             sv,

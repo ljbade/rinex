@@ -69,14 +69,6 @@ impl std::fmt::Display for FrameClass {
 pub enum MsgType {
     /// Legacy NAV
     LNAV,
-    /// CNAV
-    CNAV,
-    /// CNAV-1
-    CNV1,
-    /// CNAV-2
-    CNV2,
-    /// CNAV-3
-    CNV3,
     /// FDMA
     FDMA,
     /// FNAV
@@ -107,10 +99,6 @@ impl std::fmt::Display for MsgType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::LNAV => f.write_str("LNAV"),
-            Self::CNAV => f.write_str("CNAV"),
-            Self::CNV1 => f.write_str("CNV1"),
-            Self::CNV2 => f.write_str("CNV2"),
-            Self::CNV3 => f.write_str("CNV3"),
             Self::FNAV => f.write_str("FNAV"),
             Self::INAV => f.write_str("INAV"),
             Self::FDMA => f.write_str("FDMA"),
@@ -337,9 +325,6 @@ fn parse_v4_record_entry(content: &str) -> Result<(Epoch, FrameClass, Frame), Er
     let (epoch, fr): (Epoch, Frame) = match frame_class {
         FrameClass::Ephemeris => {
             let (epoch, _, ephemeris) = Ephemeris::parse_v4(msg_type, lines)?;
-            // if msg_type == MsgType::CNV1 {
-            //     println!("sv = {sv} epoch = {epoch:?} rcd 1");
-            // }
             (epoch, Frame::Eph(msg_type, sv, ephemeris))
         },
         FrameClass::SystemTimeOffset => {
@@ -374,9 +359,6 @@ fn parse_v4_record_entry(content: &str) -> Result<(Epoch, FrameClass, Frame), Er
             (epoch, Frame::Ion(msg_type, sv, msg))
         },
     };
-    // if msg_type == MsgType::CNV1 {
-    //     println!("sv = {sv} epoch = {epoch:?} rcd 2");
-    // }
     Ok((epoch, frame_class, fr))
 }
 
