@@ -119,11 +119,11 @@ pub(crate) fn parse(s: &str, c: Constellation) -> Result<(Epoch, EpochFlag), Err
         Constellation::GPS => TimeScale::GPST,
         Constellation::Glonass => TimeScale::UTC,
         Constellation::BeiDou => TimeScale::BDT,
-        Constellation::QZSS => TimeScale::GPST, // TODO should be QZSST
+        Constellation::QZSS => TimeScale::GPST, // should be changed to QZSST when hifitime adds support
         Constellation::Galileo => TimeScale::GST,
         Constellation::Geo => TimeScale::GST,
         Constellation::SBAS(_) => TimeScale::GST,
-        Constellation::IRNSS => TimeScale::UTC, // TODO should be IRNSST
+        Constellation::IRNSS => TimeScale::UTC, // should be changed to IRNSST when hifitime adds support
         Constellation::Mixed => TimeScale::UTC,
     };
 
