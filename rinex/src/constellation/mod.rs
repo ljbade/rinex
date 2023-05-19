@@ -1,4 +1,5 @@
 //! `GNSS` constellations & associated methods
+use hifitime::TimeScale;
 use thiserror::Error;
 
 mod augmentation;
@@ -61,8 +62,8 @@ impl Default for Constellation {
 }
 
 impl Constellation {
-    /// Identifies `gnss` constellation from given 1 letter code.    
-    /// Given code should match official RINEX codes.    
+    /// Identifies `gnss` constellation from given 1 letter code.
+    /// Given code should match official RINEX codes.
     /// This method is case insensitive though
     pub fn from_1_letter_code(code: &str) -> Result<Constellation, Error> {
         if code.len() != 1 {
@@ -101,8 +102,8 @@ impl Constellation {
             Constellation::Mixed => "M",
         }
     }
-    /// Identifies `gnss` constellation from given 3 letter code.    
-    /// Given code should match official RINEX codes.    
+    /// Identifies `gnss` constellation from given 3 letter code.
+    /// Given code should match official RINEX codes.
     /// This method is case insensitive though
     pub fn from_3_letter_code(code: &str) -> Result<Constellation, Error> {
         if code.len() != 3 {
@@ -166,13 +167,28 @@ impl Constellation {
             Err(Error::UnknownCode(code.to_string()))
         }
     }
+
+    /// The correct time scale for this constellation
+    pub fn to_time_scale(&self) -> Option<TimeScale> {
+        match self {
+            Constellation::GPS => Some(TimeScale::GPST),
+            Constellation::Glonass => Some(TimeScale::UTC),
+            Constellation::BeiDou => Some(TimeScale::BDT),
+            Constellation::QZSS => Some(TimeScale::GPST), // should be changed to QZSST when hifitime adds support
+            Constellation::Galileo => Some(TimeScale::GST),
+            Constellation::Geo => Some(TimeScale::GST),
+            Constellation::SBAS(_) => Some(TimeScale::GST),
+            Constellation::IRNSS => Some(TimeScale::UTC), // should be changed to IRNSST when hifitime adds support
+            Constellation::Mixed => None,
+        }
+    }
 }
 
 impl std::str::FromStr for Constellation {
     type Err = Error;
-    /// Identifies `gnss` constellation from given code.   
+    /// Identifies `gnss` constellation from given code.
     /// Code should be standard constellation name,
-    /// or official 1/3 letter RINEX code.    
+    /// or official 1/3 letter RINEX code.
     /// This method is case insensitive
     fn from_str(code: &str) -> Result<Self, Self::Err> {
         if code.len() == 3 {

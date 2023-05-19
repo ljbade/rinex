@@ -289,7 +289,7 @@ pub(crate) fn parse_epoch(
     let (date, rem) = line.split_at(offset + 3);
     let (n_sat, rem) = rem.split_at(3);
     let n_sat = u16::from_str_radix(n_sat.trim(), 10)?;
-    let epoch = epoch::parse_utc(date)?; // TODO use time scale from TIME OF FIRST OBS header
+    let epoch = epoch::parse_ts(date, header.time_first_obs.time_scale)?;
 
     // previously identified observables (that we expect)
     let obs = header.obs.as_ref().unwrap();

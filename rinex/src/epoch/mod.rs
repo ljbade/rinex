@@ -42,6 +42,7 @@ pub(crate) fn now() -> Epoch {
 /*
  * Formats given epoch to string, matching standard specifications
  */
+// TODO need to handle time scale properly! should convert to the same time scale
 pub(crate) fn format(epoch: Epoch, flag: Option<EpochFlag>, t: Type, revision: u8) -> String {
     let (y, m, d, hh, mm, ss, nanos) = epoch.to_gregorian_utc();
     match t {
@@ -115,19 +116,7 @@ pub(crate) fn parse_utc(s: &str) -> Result<(Epoch, EpochFlag), Error> {
 }
 
 pub(crate) fn parse(s: &str, c: Constellation) -> Result<(Epoch, EpochFlag), Error> {
-    let ts = match c {
-        Constellation::GPS => TimeScale::GPST,
-        Constellation::Glonass => TimeScale::UTC,
-        Constellation::BeiDou => TimeScale::BDT,
-        Constellation::QZSS => TimeScale::GPST, // should be changed to QZSST when hifitime adds support
-        Constellation::Galileo => TimeScale::GST,
-        Constellation::Geo => TimeScale::GST,
-        Constellation::SBAS(_) => TimeScale::GST,
-        Constellation::IRNSS => TimeScale::UTC, // should be changed to IRNSST when hifitime adds support
-        Constellation::Mixed => TimeScale::UTC,
-    };
-
-    parse_ts(s, ts)
+    parse_ts(s, c.to_time_scale().unwrap())
 }
 
 /*

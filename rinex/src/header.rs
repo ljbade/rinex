@@ -92,6 +92,66 @@ impl Default for MarkerType {
     }
 }
 
+fn parse_time(content: &str, constellation: Option<Constellation>) -> Option<Epoch> {
+    let (y, rem) = content.split_at(7);
+    let (m, rem) = rem.split_at(7);
+    let (d, rem) = rem.split_at(7);
+    let (hh, rem) = rem.split_at(7);
+    let (mm, rem) = rem.split_at(7);
+    let (ss, rem) = rem.split_at(14);
+    let (time_sys, _) = rem.split_at(9);
+
+    let ts = match time_sys.trim() {
+        "GPS" => TimeScale::GPST,
+        "GLO" => TimeScale::UTC,
+        "GAL" => TimeScale::GST,
+        "QZS" => TimeScale::GPST, // should be changed to QZSST when hifitime adds support
+        "BDT" => TimeScale::BDT,
+        "IRN" => TimeScale::UTC, // should be changed to IRNSST when hifitime adds support
+        "" => {
+            if let Some(constellation) = constellation {
+                if let Some(ts) = constellation.to_time_scale() {
+                    ts
+                } else {
+                    return None;
+                }
+            } else {
+                return None;
+            }
+        },
+        _ => {
+            return None;
+        },
+    };
+
+    if let Ok(y) = i32::from_str(y.trim()) {
+        if let Ok(m) = u8::from_str(m.trim()) {
+            if let Ok(d) = u8::from_str(d.trim()) {
+                if let Ok(hh) = u8::from_str(hh.trim()) {
+                    if let Ok(mm) = u8::from_str(mm.trim()) {
+                        if let Some(dot) = ss.find(".") {
+                            if let Ok(ss_s) = u8::from_str(ss[..dot].trim()) {
+                                if let Ok(mut ss_ns) = u32::from_str(ss[dot + 1..].trim()) {
+                                    ss_ns *= 100_000_000;
+                                    return Some(Epoch::from_gregorian(
+                                        y, m, d, hh, mm, ss_s, ss_ns, ts,
+                                    ));
+                                }
+                            }
+                        } else {
+                            if let Ok(ss) = u8::from_str(ss.trim()) {
+                                return Some(Epoch::from_gregorian(y, m, d, hh, mm, ss, 0, ts));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// Describes `RINEX` file header
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -135,6 +195,10 @@ pub struct Header {
     pub wavelengths: Option<(u32, u32)>,
     /// Optionnal sampling interval (s)
     pub sampling_interval: Option<Duration>,
+    /// Time of first observation
+    pub time_first_obs: Epoch,
+    /// Optional time of last observation
+    pub time_last_obs: Option<Epoch>,
     /// Optionnal file license
     pub license: Option<String>,
     /// Optionnal Object Identifier (IoT)
@@ -228,6 +292,8 @@ impl Default for Header {
             wavelengths: None,
             data_scaling: None,
             sampling_interval: None,
+            time_first_obs: Epoch::from_gpst_nanoseconds(0),
+            time_last_obs: None,
             obs: None,
             meteo: None,
             clocks: None,
@@ -261,6 +327,8 @@ impl Header {
         let mut sv_antenna: Option<SvAntenna> = None;
         let mut leap: Option<leap::Leap> = None;
         let mut sampling_interval: Option<Duration> = None;
+        let mut time_first_obs: Epoch = Epoch::from_gpst_nanoseconds(0);
+        let mut time_last_obs: Option<Epoch> = None;
         let mut coords: Option<(f64, f64, f64)> = None;
         // RINEX specific fields
         let mut current_constell: Option<Constellation> = None;
@@ -710,6 +778,12 @@ impl Header {
                             Some(Duration::from_f64(interval, hifitime::Unit::Second));
                     }
                 }
+            } else if marker.contains("TIME OF FIRST OBS") {
+                if let Some(time) = parse_time(content, constellation) {
+                    time_first_obs = time;
+                }
+            } else if marker.contains("TIME OF LAST OBS") {
+                time_last_obs = parse_time(content, constellation);
             } else if marker.contains("GLONASS SLOT / FRQ #") {
                 let slots = content.split_at(4).1.trim();
                 for i in 0..num_integer::div_ceil(slots.len(), 7) {
@@ -877,6 +951,8 @@ impl Header {
             wavelengths: None,
             gps_utc_delta: None,
             sampling_interval,
+            time_first_obs,
+            time_last_obs,
             data_scaling: None,
             rcvr_antenna,
             sv_antenna,
@@ -1064,6 +1140,16 @@ impl Header {
                     Some(interval.clone())
                 } else if let Some(interval) = header.sampling_interval {
                     Some(interval.clone())
+                } else {
+                    None
+                }
+            },
+            time_first_obs: self.time_first_obs,
+            time_last_obs: {
+                if let Some(time_last_obs) = self.time_last_obs {
+                    Some(time_last_obs.clone())
+                } else if let Some(time_last_obs) = header.time_last_obs {
+                    Some(time_last_obs.clone())
                 } else {
                     None
                 }
